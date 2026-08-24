@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct AgentRowView: View {
     let item: LaunchAgentItem
@@ -50,11 +51,17 @@ struct AgentRowView: View {
 
             actionButton(
                 systemImage: "doc.text",
-                isDisabled: !hasLogPath || item.label == nil,
-                help: hasLogPath ? "View log" : "No StandardOutPath/StandardErrorPath configured for this agent",
+                isDisabled: item.label == nil,
+                help: hasLogPath ? "View log and plist" : "No log configured — view plist",
                 action: {
                     if let label = item.label {
                         openWindow(id: "log-tail", value: label)
+                        // openWindow brings an already-open window to the
+                        // front of the app, but won't raise the app itself
+                        // above other apps — without this, clicking the
+                        // button while the log window sits behind another
+                        // app's window does nothing visible.
+                        NSApp.activate(ignoringOtherApps: true)
                     }
                 }
             )

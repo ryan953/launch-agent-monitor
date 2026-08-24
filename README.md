@@ -17,8 +17,12 @@ action buttons:
 - **Start/Stop** — `launchctl kickstart`/`kill SIGTERM`, disabled until the
   agent is registered (stopped agents may restart on their own if configured
   with `KeepAlive`)
-- **View Log** — opens a live-tailing window over the agent's
-  `StandardOutPath`/`StandardErrorPath`, disabled when neither is configured
+- **View Log** — opens a window with a tab per configured log stream
+  (stdout/stderr, live-tailed) plus a Plist tab showing the agent's plist
+  re-serialized as readable XML (so binary-format plists are readable too);
+  brings that window to the front even if it's already open behind another
+  app. Disabled only when the agent has no Label to key the window on —
+  still available with no log configured, since the Plist tab always works.
 - **Debug** — raw `launchctl print`/`launchctl blame` output, useful for
   diagnosing an agent that's registered but won't start
 

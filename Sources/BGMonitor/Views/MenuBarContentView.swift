@@ -5,6 +5,7 @@ struct MenuBarContentView: View {
     @Bindable var viewModel: AgentListViewModel
     @State private var editingItem: LaunchAgentItem?
     @State private var debugItem: LaunchAgentItem?
+    @State private var scheduleItem: LaunchAgentItem?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,6 +24,24 @@ struct MenuBarContentView: View {
                                     editingItem = item
                                 } onShowDebugInfo: {
                                     debugItem = item
+                                } onShowSchedule: {
+                                    scheduleItem = item
+                                } onToggleRegistration: {
+                                    Task {
+                                        if item.isRegistered {
+                                            await viewModel.unregister(item)
+                                        } else {
+                                            await viewModel.register(item)
+                                        }
+                                    }
+                                } onToggleRunning: {
+                                    Task {
+                                        if item.isRunning {
+                                            await viewModel.stop(item)
+                                        } else {
+                                            await viewModel.start(item)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -35,7 +54,7 @@ struct MenuBarContentView: View {
 
             footer
         }
-        .frame(width: 420, height: 480)
+        .frame(width: 480, height: 480)
         .task {
             await viewModel.refresh()
         }
@@ -46,6 +65,20 @@ struct MenuBarContentView: View {
         }
         .sheet(item: $debugItem) { item in
             DebugInfoSheetView(item: item)
+        }
+        .sheet(item: $scheduleItem) { item in
+            ScheduleDetailView(item: item)
+        }
+        .alert(
+            "Action Failed",
+            isPresented: Binding(
+                get: { viewModel.lastActionError != nil },
+                set: { isPresented in if !isPresented { viewModel.lastActionError = nil } }
+            )
+        ) {
+            Button("OK") { viewModel.lastActionError = nil }
+        } message: {
+            Text(viewModel.lastActionError ?? "")
         }
     }
 

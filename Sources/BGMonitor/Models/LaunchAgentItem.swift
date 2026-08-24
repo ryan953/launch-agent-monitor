@@ -18,9 +18,10 @@ struct LaunchAgentItem: Identifiable, Equatable, Sendable {
     // Scheduling metadata, parsed from the plist by PlistScanner.
     var runAtLoad: Bool = false
     var startInterval: TimeInterval?
-    var calendarIntervalCount: Int = 0
-    var hasKeepAlive: Bool = false
-    var hasWatchPaths: Bool = false
+    var calendarRules: [CalendarRule] = []
+    var keepAliveDescription: String?
+    var watchPaths: [String] = []
+    var queueDirectories: [String] = []
     var standardOutPath: String?
     var standardErrorPath: String?
 
@@ -33,9 +34,9 @@ struct LaunchAgentItem: Identifiable, Equatable, Sendable {
             return .atLoad
         } else if let startInterval {
             return .interval(startInterval)
-        } else if calendarIntervalCount > 0 {
-            return .calendar(count: calendarIntervalCount)
-        } else if hasKeepAlive || hasWatchPaths {
+        } else if !calendarRules.isEmpty {
+            return .calendar(count: calendarRules.count)
+        } else if keepAliveDescription != nil || !watchPaths.isEmpty || !queueDirectories.isEmpty {
             return .onDemand
         } else {
             return .manual

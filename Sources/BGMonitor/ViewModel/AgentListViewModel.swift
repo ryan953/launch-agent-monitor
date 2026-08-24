@@ -7,6 +7,7 @@ final class AgentListViewModel {
     var items: [LaunchAgentItem] = []
     var groupingKey: GroupingKey = .runningState
     var isRefreshing: Bool = false
+    var lastActionError: String?
 
     private let configStore = ConfigStore()
     private let statusScheduler: StatusCheckScheduler
@@ -84,5 +85,33 @@ final class AgentListViewModel {
         items[index].statusCommand?.lastOutput = output
         items[index].statusCommand?.lastRunDate = date
         items[index].statusCommand?.lastRunFailed = failed
+    }
+
+    func register(_ item: LaunchAgentItem) async {
+        let plistURL = item.plistURL
+        await performAction(name: "Register") { LaunchctlActions.register(plistURL: plistURL) }
+    }
+
+    func unregister(_ item: LaunchAgentItem) async {
+        guard let label = item.label else { return }
+        await performAction(name: "Unregister") { LaunchctlActions.unregister(label: label) }
+    }
+
+    func start(_ item: LaunchAgentItem) async {
+        guard let label = item.label else { return }
+        await performAction(name: "Start") { LaunchctlActions.start(label: label) }
+    }
+
+    func stop(_ item: LaunchAgentItem) async {
+        guard let label = item.label else { return }
+        await performAction(name: "Stop") { LaunchctlActions.stop(label: label) }
+    }
+
+    private func performAction(name: String, _ action: @escaping @Sendable () -> Result<Void, LaunchctlActionError>) async {
+        let result = await Task.detached(priority: .userInitiated, operation: action).value
+        if case .failure(let error) = result {
+            lastActionError = "\(name) failed: \(error.localizedDescription)"
+        }
+        await refresh()
     }
 }

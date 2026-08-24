@@ -11,11 +11,20 @@ message on the row (e.g. an indexer reporting "42% done").
 
 Each row also shows its schedule at a glance (at load / every N / calendar /
 on demand / manual only, derived from `RunAtLoad`, `StartInterval`,
-`StartCalendarInterval`, `KeepAlive`, `WatchPaths`/`QueueDirectories`), a
-"View Log" button that opens a live-tailing window over the agent's
-`StandardOutPath`/`StandardErrorPath` when configured, and a "Debug" button
-showing raw `launchctl print`/`launchctl blame` output — useful for
-diagnosing an agent that's registered but won't start.
+`StartCalendarInterval`, `KeepAlive`, `WatchPaths`/`QueueDirectories`), and
+has buttons — each with a tooltip — to:
+
+- **Register/Unregister** — `launchctl bootstrap`/`bootout`, loads or unloads
+  the agent from launchd
+- **Start/Stop** — `launchctl kickstart`/`kill SIGTERM`, only shown once
+  registered (stopped agents may restart on their own if configured with
+  `KeepAlive`)
+- **View schedule** — the full detail behind the schedule badge (calendar
+  rules, keep-alive condition, watch paths)
+- **View Log** — opens a live-tailing window over the agent's
+  `StandardOutPath`/`StandardErrorPath`, shown only when configured
+- **Debug** — raw `launchctl print`/`launchctl blame` output, useful for
+  diagnosing an agent that's registered but won't start
 
 Scope is intentionally limited to LaunchAgents (not LaunchDaemons, and not
 Apple's `/System/Library/LaunchAgents`) so the whole app reads live state
@@ -33,7 +42,7 @@ Or open `Package.swift` directly in Xcode and hit Run.
 
 ## Layout
 
-- `Sources/BGMonitor/Models` — `LaunchAgentItem`, `Domain`, `GroupingKey`, `StatusCheckConfig`, `AgentSchedule`
-- `Sources/BGMonitor/Services` — plist scanning, launchctl state reading, directory watching, status-check scheduling/execution, config persistence, log tailing (`LogTailer`), raw launchctl debug info
+- `Sources/BGMonitor/Models` — `LaunchAgentItem`, `Domain`, `GroupingKey`, `StatusCheckConfig`, `AgentSchedule`, `CalendarRule`
+- `Sources/BGMonitor/Services` — plist scanning, launchctl state reading, directory watching, status-check scheduling/execution, config persistence, log tailing (`LogTailer`), raw launchctl debug info, mutating launchctl actions (`LaunchctlActions`)
 - `Sources/BGMonitor/ViewModel` — `AgentListViewModel`, the single source of truth merging all of the above
-- `Sources/BGMonitor/Views` — the menubar UI, log-tail window, and debug-info sheet
+- `Sources/BGMonitor/Views` — the menubar UI, log-tail window, debug-info sheet, and schedule-detail sheet

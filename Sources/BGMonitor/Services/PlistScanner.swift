@@ -94,18 +94,31 @@ enum PlistScanner {
         // [[String: Any]], and an array won't cast as [String: Any], so
         // trying either order is safe.
         if let entries = dict["StartCalendarInterval"] as? [[String: Any]] {
-            item.calendarIntervalCount = entries.count
-        } else if dict["StartCalendarInterval"] as? [String: Any] != nil {
-            item.calendarIntervalCount = 1
+            item.calendarRules = entries.map(calendarRule(from:))
+        } else if let entry = dict["StartCalendarInterval"] as? [String: Any] {
+            item.calendarRules = [calendarRule(from: entry)]
         }
 
-        item.hasKeepAlive = dict["KeepAlive"] != nil
+        if let keepAlive = dict["KeepAlive"] as? Bool {
+            item.keepAliveDescription = keepAlive ? "Always" : "Disabled"
+        } else if let keepAlive = dict["KeepAlive"] as? [String: Any] {
+            item.keepAliveDescription = keepAlive.keys.sorted().joined(separator: ", ")
+        }
 
-        let watchPaths = dict["WatchPaths"] as? [Any]
-        let queueDirectories = dict["QueueDirectories"] as? [Any]
-        item.hasWatchPaths = !(watchPaths?.isEmpty ?? true) || !(queueDirectories?.isEmpty ?? true)
+        item.watchPaths = (dict["WatchPaths"] as? [String]) ?? []
+        item.queueDirectories = (dict["QueueDirectories"] as? [String]) ?? []
 
         item.standardOutPath = dict["StandardOutPath"] as? String
         item.standardErrorPath = dict["StandardErrorPath"] as? String
+    }
+
+    private static func calendarRule(from dict: [String: Any]) -> CalendarRule {
+        CalendarRule(
+            minute: dict["Minute"] as? Int,
+            hour: dict["Hour"] as? Int,
+            day: dict["Day"] as? Int,
+            weekday: dict["Weekday"] as? Int,
+            month: dict["Month"] as? Int
+        )
     }
 }

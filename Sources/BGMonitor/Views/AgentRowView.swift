@@ -4,6 +4,9 @@ struct AgentRowView: View {
     let item: LaunchAgentItem
     var onEditStatusCommand: () -> Void
     var onShowDebugInfo: () -> Void
+    var onShowSchedule: () -> Void
+    var onToggleRegistration: () -> Void
+    var onToggleRunning: () -> Void
 
     @Environment(\.openWindow) private var openWindow
 
@@ -41,6 +44,43 @@ struct AgentRowView: View {
             }
 
             Spacer()
+
+            Button {
+                onToggleRegistration()
+            } label: {
+                Image(systemName: item.isRegistered ? "tray.and.arrow.up.fill" : "tray.and.arrow.down.fill")
+            }
+            .buttonStyle(.borderless)
+            .disabled(item.label == nil)
+            .help(
+                item.label == nil
+                    ? "Unavailable for unlabeled/invalid plists"
+                    : item.isRegistered
+                        ? "Unregister from launchd (launchctl bootout) — stops it and removes it from launchd until reloaded"
+                        : "Register with launchd (launchctl bootstrap) — loads this agent so it can run"
+            )
+
+            if item.isRegistered {
+                Button {
+                    onToggleRunning()
+                } label: {
+                    Image(systemName: item.isRunning ? "stop.fill" : "play.fill")
+                }
+                .buttonStyle(.borderless)
+                .help(
+                    item.isRunning
+                        ? "Stop now (launchctl kill SIGTERM) — the agent may restart on its own if it's configured to KeepAlive"
+                        : "Start now (launchctl kickstart) — runs it immediately without waiting for its schedule"
+                )
+            }
+
+            Button {
+                onShowSchedule()
+            } label: {
+                Image(systemName: "calendar")
+            }
+            .buttonStyle(.borderless)
+            .help("View this agent's full schedule details")
 
             if hasLogPath, let label = item.label {
                 Button {

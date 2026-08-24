@@ -4,6 +4,7 @@ import AppKit
 struct MenuBarContentView: View {
     @Bindable var viewModel: AgentListViewModel
     @State private var editingItem: LaunchAgentItem?
+    @State private var debugItem: LaunchAgentItem?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,6 +21,8 @@ struct MenuBarContentView: View {
                             ForEach(section.items) { item in
                                 AgentRowView(item: item) {
                                     editingItem = item
+                                } onShowDebugInfo: {
+                                    debugItem = item
                                 }
                             }
                         }
@@ -40,6 +43,9 @@ struct MenuBarContentView: View {
             StatusCheckEditorView(item: item) { config in
                 viewModel.setStatusCommand(config, for: item)
             }
+        }
+        .sheet(item: $debugItem) { item in
+            DebugInfoSheetView(item: item)
         }
     }
 

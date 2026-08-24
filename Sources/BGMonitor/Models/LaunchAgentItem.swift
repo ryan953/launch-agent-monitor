@@ -15,7 +15,30 @@ struct LaunchAgentItem: Identifiable, Equatable, Sendable {
 
     var statusCommand: StatusCheckConfig?
 
+    // Scheduling metadata, parsed from the plist by PlistScanner.
+    var runAtLoad: Bool = false
+    var startInterval: TimeInterval?
+    var calendarIntervalCount: Int = 0
+    var hasKeepAlive: Bool = false
+    var hasWatchPaths: Bool = false
+    var standardOutPath: String?
+    var standardErrorPath: String?
+
     var displayName: String {
         label ?? plistURL.lastPathComponent
+    }
+
+    var schedule: AgentSchedule {
+        if runAtLoad {
+            return .atLoad
+        } else if let startInterval {
+            return .interval(startInterval)
+        } else if calendarIntervalCount > 0 {
+            return .calendar(count: calendarIntervalCount)
+        } else if hasKeepAlive || hasWatchPaths {
+            return .onDemand
+        } else {
+            return .manual
+        }
     }
 }

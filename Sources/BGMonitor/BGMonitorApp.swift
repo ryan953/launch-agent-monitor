@@ -11,6 +11,12 @@ struct BGMonitorApp: App {
             MenuBarContentView(viewModel: viewModel)
         }
         .menuBarExtraStyle(.window)
+
+        WindowGroup(id: "log-tail", for: String.self) { $label in
+            if let label {
+                LogTailWindowView(label: label, viewModel: viewModel)
+            }
+        }
     }
 }
 

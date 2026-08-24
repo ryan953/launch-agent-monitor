@@ -9,6 +9,14 @@ Each agent can also have a custom shell command attached that runs on an
 interval while the agent is running — its stdout shows up as a status
 message on the row (e.g. an indexer reporting "42% done").
 
+Each row also shows its schedule at a glance (at load / every N / calendar /
+on demand / manual only, derived from `RunAtLoad`, `StartInterval`,
+`StartCalendarInterval`, `KeepAlive`, `WatchPaths`/`QueueDirectories`), a
+"View Log" button that opens a live-tailing window over the agent's
+`StandardOutPath`/`StandardErrorPath` when configured, and a "Debug" button
+showing raw `launchctl print`/`launchctl blame` output — useful for
+diagnosing an agent that's registered but won't start.
+
 Scope is intentionally limited to LaunchAgents (not LaunchDaemons, and not
 Apple's `/System/Library/LaunchAgents`) so the whole app reads live state
 via `launchctl print gui/<uid>/<label>` without ever needing sudo/root.
@@ -25,7 +33,7 @@ Or open `Package.swift` directly in Xcode and hit Run.
 
 ## Layout
 
-- `Sources/BGMonitor/Models` — `LaunchAgentItem`, `Domain`, `GroupingKey`, `StatusCheckConfig`
-- `Sources/BGMonitor/Services` — plist scanning, launchctl state reading, directory watching, status-check scheduling/execution, config persistence
+- `Sources/BGMonitor/Models` — `LaunchAgentItem`, `Domain`, `GroupingKey`, `StatusCheckConfig`, `AgentSchedule`
+- `Sources/BGMonitor/Services` — plist scanning, launchctl state reading, directory watching, status-check scheduling/execution, config persistence, log tailing (`LogTailer`), raw launchctl debug info
 - `Sources/BGMonitor/ViewModel` — `AgentListViewModel`, the single source of truth merging all of the above
-- `Sources/BGMonitor/Views` — the menubar UI
+- `Sources/BGMonitor/Views` — the menubar UI, log-tail window, and debug-info sheet

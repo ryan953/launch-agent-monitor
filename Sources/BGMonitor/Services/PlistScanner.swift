@@ -59,13 +59,15 @@ enum PlistScanner {
                 )
             }
 
-            return LaunchAgentItem(
+            var item = LaunchAgentItem(
                 id: label,
                 label: label,
                 plistURL: plistURL,
                 domain: domain,
                 parseError: nil
             )
+            applyScheduleMetadata(from: dict, to: &item)
+            return item
         } catch {
             return LaunchAgentItem(
                 id: plistURL.path,
@@ -75,5 +77,35 @@ enum PlistScanner {
                 parseError: "Invalid plist: \(error.localizedDescription)"
             )
         }
+    }
+
+    /// Reads the scheduling/logging keys defined by launchd.plist(5).
+    /// All casts are defensive — a malformed or unexpected value for any
+    /// key just leaves that field unset rather than failing the whole parse.
+    private static func applyScheduleMetadata(from dict: [String: Any], to item: inout LaunchAgentItem) {
+        item.runAtLoad = (dict["RunAtLoad"] as? Bool) ?? false
+
+        if let seconds = dict["StartInterval"] as? Int {
+            item.startInterval = TimeInterval(seconds)
+        }
+
+        // StartCalendarInterval may be a single dict or an array of dicts.
+        // Try the array form first: a single dict won't cast as
+        // [[String: Any]], and an array won't cast as [String: Any], so
+        // trying either order is safe.
+        if let entries = dict["StartCalendarInterval"] as? [[String: Any]] {
+            item.calendarIntervalCount = entries.count
+        } else if dict["StartCalendarInterval"] as? [String: Any] != nil {
+            item.calendarIntervalCount = 1
+        }
+
+        item.hasKeepAlive = dict["KeepAlive"] != nil
+
+        let watchPaths = dict["WatchPaths"] as? [Any]
+        let queueDirectories = dict["QueueDirectories"] as? [Any]
+        item.hasWatchPaths = !(watchPaths?.isEmpty ?? true) || !(queueDirectories?.isEmpty ?? true)
+
+        item.standardOutPath = dict["StandardOutPath"] as? String
+        item.standardErrorPath = dict["StandardErrorPath"] as? String
     }
 }

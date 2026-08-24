@@ -3,6 +3,13 @@ import SwiftUI
 struct AgentRowView: View {
     let item: LaunchAgentItem
     var onEditStatusCommand: () -> Void
+    var onShowDebugInfo: () -> Void
+
+    @Environment(\.openWindow) private var openWindow
+
+    private var hasLogPath: Bool {
+        item.standardOutPath != nil || item.standardErrorPath != nil
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -16,6 +23,7 @@ struct AgentRowView: View {
                     domainBadge
                     registrationBadge
                     runningBadge
+                    scheduleBadge
                 }
 
                 if let parseError = item.parseError {
@@ -34,6 +42,16 @@ struct AgentRowView: View {
 
             Spacer()
 
+            if hasLogPath, let label = item.label {
+                Button {
+                    openWindow(id: "log-tail", value: label)
+                } label: {
+                    Image(systemName: "doc.text")
+                }
+                .buttonStyle(.borderless)
+                .help("View log")
+            }
+
             Button {
                 onEditStatusCommand()
             } label: {
@@ -42,6 +60,15 @@ struct AgentRowView: View {
             .buttonStyle(.borderless)
             .disabled(item.label == nil)
             .help(item.label == nil ? "Unavailable for unlabeled/invalid plists" : "Set a periodic status command")
+
+            Button {
+                onShowDebugInfo()
+            } label: {
+                Image(systemName: "stethoscope")
+            }
+            .buttonStyle(.borderless)
+            .disabled(item.label == nil)
+            .help(item.label == nil ? "Unavailable for unlabeled/invalid plists" : "Show launchctl print/blame output")
         }
         .padding(.vertical, 4)
     }
@@ -66,5 +93,12 @@ struct AgentRowView: View {
             .labelStyle(.iconOnly)
             .foregroundStyle(item.isRunning ? .blue : .secondary)
             .help(item.isRunning ? "Running (pid \(item.pid.map(String.init) ?? "?"))" : "Not running")
+    }
+
+    private var scheduleBadge: some View {
+        Label(item.schedule.summary, systemImage: item.schedule.systemImage)
+            .labelStyle(.iconOnly)
+            .foregroundStyle(.secondary)
+            .help("Schedule: \(item.schedule.summary)")
     }
 }

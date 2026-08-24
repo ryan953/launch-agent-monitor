@@ -13,8 +13,6 @@ struct LaunchAgentItem: Identifiable, Equatable, Sendable {
     var pid: Int32?
     var lastExitCode: Int32?
 
-    var statusCommand: StatusCheckConfig?
-
     // Scheduling metadata, parsed from the plist by PlistScanner.
     var runAtLoad: Bool = false
     var startInterval: TimeInterval?

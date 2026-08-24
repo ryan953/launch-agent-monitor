@@ -3,7 +3,6 @@ import AppKit
 
 struct MenuBarContentView: View {
     @Bindable var viewModel: AgentListViewModel
-    @State private var editingItem: LaunchAgentItem?
     @State private var debugItem: LaunchAgentItem?
     @State private var scheduleItem: LaunchAgentItem?
 
@@ -21,8 +20,6 @@ struct MenuBarContentView: View {
                         Section(section.key) {
                             ForEach(section.items) { item in
                                 AgentRowView(item: item) {
-                                    editingItem = item
-                                } onShowDebugInfo: {
                                     debugItem = item
                                 } onShowSchedule: {
                                     scheduleItem = item
@@ -57,11 +54,6 @@ struct MenuBarContentView: View {
         .frame(width: 480, height: 480)
         .task {
             await viewModel.refresh()
-        }
-        .sheet(item: $editingItem) { item in
-            StatusCheckEditorView(item: item) { config in
-                viewModel.setStatusCommand(config, for: item)
-            }
         }
         .sheet(item: $debugItem) { item in
             DebugInfoSheetView(item: item)

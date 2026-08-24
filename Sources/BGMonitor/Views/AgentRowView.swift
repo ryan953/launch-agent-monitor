@@ -2,7 +2,6 @@ import SwiftUI
 
 struct AgentRowView: View {
     let item: LaunchAgentItem
-    var onEditStatusCommand: () -> Void
     var onShowDebugInfo: () -> Void
     var onShowSchedule: () -> Void
     var onToggleRegistration: () -> Void
@@ -34,83 +33,71 @@ struct AgentRowView: View {
                         .font(.caption2)
                         .foregroundStyle(.red)
                 }
-
-                if let status = item.statusCommand, let output = status.lastOutput {
-                    Text(output)
-                        .font(.caption)
-                        .foregroundStyle(status.lastRunFailed ? .red : .secondary)
-                        .lineLimit(2)
-                }
             }
 
             Spacer()
 
-            Button {
-                onToggleRegistration()
-            } label: {
-                Image(systemName: item.isRegistered ? "tray.and.arrow.up.fill" : "tray.and.arrow.down.fill")
-            }
-            .buttonStyle(.borderless)
-            .disabled(item.label == nil)
-            .help(
-                item.label == nil
+            actionButton(
+                systemImage: item.isRegistered ? "tray.and.arrow.up.fill" : "tray.and.arrow.down.fill",
+                isDisabled: item.label == nil,
+                help: item.label == nil
                     ? "Unavailable for unlabeled/invalid plists"
                     : item.isRegistered
                         ? "Unregister from launchd (launchctl bootout) — stops it and removes it from launchd until reloaded"
-                        : "Register with launchd (launchctl bootstrap) — loads this agent so it can run"
+                        : "Register with launchd (launchctl bootstrap) — loads this agent so it can run",
+                action: onToggleRegistration
             )
 
-            if item.isRegistered {
-                Button {
-                    onToggleRunning()
-                } label: {
-                    Image(systemName: item.isRunning ? "stop.fill" : "play.fill")
-                }
-                .buttonStyle(.borderless)
-                .help(
-                    item.isRunning
+            actionButton(
+                systemImage: item.isRunning ? "stop.fill" : "play.fill",
+                isDisabled: item.label == nil || !item.isRegistered,
+                help: item.label == nil || !item.isRegistered
+                    ? "Register this agent first before it can be started"
+                    : item.isRunning
                         ? "Stop now (launchctl kill SIGTERM) — the agent may restart on its own if it's configured to KeepAlive"
-                        : "Start now (launchctl kickstart) — runs it immediately without waiting for its schedule"
-                )
-            }
+                        : "Start now (launchctl kickstart) — runs it immediately without waiting for its schedule",
+                action: onToggleRunning
+            )
 
-            Button {
-                onShowSchedule()
-            } label: {
-                Image(systemName: "calendar")
-            }
-            .buttonStyle(.borderless)
-            .help("View this agent's full schedule details")
+            actionButton(
+                systemImage: "calendar",
+                isDisabled: false,
+                help: "View this agent's full schedule details",
+                action: onShowSchedule
+            )
 
-            if hasLogPath, let label = item.label {
-                Button {
-                    openWindow(id: "log-tail", value: label)
-                } label: {
-                    Image(systemName: "doc.text")
+            actionButton(
+                systemImage: "doc.text",
+                isDisabled: !hasLogPath || item.label == nil,
+                help: hasLogPath ? "View log" : "No StandardOutPath/StandardErrorPath configured for this agent",
+                action: {
+                    if let label = item.label {
+                        openWindow(id: "log-tail", value: label)
+                    }
                 }
-                .buttonStyle(.borderless)
-                .help("View log")
-            }
+            )
 
-            Button {
-                onEditStatusCommand()
-            } label: {
-                Image(systemName: item.statusCommand == nil ? "plus.circle" : "gearshape.fill")
-            }
-            .buttonStyle(.borderless)
-            .disabled(item.label == nil)
-            .help(item.label == nil ? "Unavailable for unlabeled/invalid plists" : "Set a periodic status command")
-
-            Button {
-                onShowDebugInfo()
-            } label: {
-                Image(systemName: "stethoscope")
-            }
-            .buttonStyle(.borderless)
-            .disabled(item.label == nil)
-            .help(item.label == nil ? "Unavailable for unlabeled/invalid plists" : "Show launchctl print/blame output")
+            actionButton(
+                systemImage: "stethoscope",
+                isDisabled: item.label == nil,
+                help: item.label == nil ? "Unavailable for unlabeled/invalid plists" : "Show launchctl print/blame output",
+                action: onShowDebugInfo
+            )
         }
         .padding(.vertical, 4)
+    }
+
+    /// Every row renders the same fixed set of action buttons — only
+    /// `.disabled`, never conditionally omitted — so icons line up across
+    /// every row regardless of that row's state.
+    private func actionButton(systemImage: String, isDisabled: Bool, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .frame(width: 16, height: 16)
+        }
+        .buttonStyle(.borderless)
+        .disabled(isDisabled)
+        .help(help)
     }
 
     private var domainBadge: some View {

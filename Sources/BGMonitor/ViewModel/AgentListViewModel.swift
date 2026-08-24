@@ -9,16 +9,10 @@ final class AgentListViewModel {
     var isRefreshing: Bool = false
     var lastActionError: String?
 
-    private let configStore = ConfigStore()
-    private let statusScheduler: StatusCheckScheduler
     private var directoryWatcher: DirectoryWatcher?
     private var autoRefreshTask: Task<Void, Never>?
 
     init() {
-        statusScheduler = StatusCheckScheduler(configStore: configStore)
-        autoRefreshTask = nil
-        directoryWatcher = nil
-
         autoRefreshTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
@@ -27,11 +21,6 @@ final class AgentListViewModel {
         }
         directoryWatcher = DirectoryWatcher(directories: Domain.allCases.map(\.directoryURL)) { [weak self] in
             Task { @MainActor in await self?.refresh() }
-        }
-        statusScheduler.setOnUpdate { [weak self] label, output, failed, date in
-            Task { @MainActor in
-                self?.statusOutputDidUpdate(label: label, output: output, failed: failed, date: date)
-            }
         }
     }
 
@@ -59,32 +48,7 @@ final class AgentListViewModel {
             return scanned
         }.value
 
-        let configs = configStore.allConfigs()
-        var withConfig = refreshed
-        for index in withConfig.indices {
-            if let label = withConfig[index].label {
-                withConfig[index].statusCommand = configs[label]
-            }
-        }
-
-        items = withConfig
-        statusScheduler.reconcile(with: withConfig)
-    }
-
-    func setStatusCommand(_ config: StatusCheckConfig?, for item: LaunchAgentItem) {
-        guard let label = item.label else { return }
-        configStore.setConfig(config, forLabel: label)
-        if let index = items.firstIndex(where: { $0.id == item.id }) {
-            items[index].statusCommand = config
-        }
-        statusScheduler.reconcile(with: items)
-    }
-
-    func statusOutputDidUpdate(label: String, output: String?, failed: Bool, date: Date) {
-        guard let index = items.firstIndex(where: { $0.label == label }) else { return }
-        items[index].statusCommand?.lastOutput = output
-        items[index].statusCommand?.lastRunDate = date
-        items[index].statusCommand?.lastRunFailed = failed
+        items = refreshed
     }
 
     func register(_ item: LaunchAgentItem) async {

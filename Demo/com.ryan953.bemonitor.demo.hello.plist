@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  BGMonitor demo LaunchAgent — a fully wired-up example for exercising the
+  app's UI (schedule badges, log tailing, register/start/stop actions).
+
+  This is a TEMPLATE: {{HOME}}/{{USER}} are substituted by Demo/install.sh
+  when it copies this into ~/Library/LaunchAgents, since a plist can't do
+  shell-style variable expansion itself.
+
+  install.sh deliberately does NOT register this with launchd — the file
+  just needs to exist on disk so BGMonitor lists it; use the app's own
+  Register button to load it.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.ryan953.bemonitor.demo.hello</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>{{HOME}}/Library/Application Support/BGMonitor/demo/hello.sh</string>
+		<string>{{USER}}</string>
+	</array>
+
+	<!-- Starts on login... -->
+	<key>RunAtLoad</key>
+	<true/>
+
+	<!-- ...and also on a quick recurring schedule, every 5 minutes. -->
+	<key>StartInterval</key>
+	<integer>300</integer>
+
+	<!-- Captured stdout/stderr, one file each, in the same convention
+	     macOS's own bundled agents use (~/Library/Logs/<label>/...). -->
+	<key>StandardOutPath</key>
+	<string>{{HOME}}/Library/Logs/com.ryan953.bemonitor.demo.hello/stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>{{HOME}}/Library/Logs/com.ryan953.bemonitor.demo.hello/stderr.log</string>
+
+	<!-- A custom env var the script reads, alongside the positional
+	     argument above — two different ways to pass data in. -->
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>DEMO_GREETING</key>
+		<string>Hello from BGMonitor</string>
+	</dict>
+
+	<key>WorkingDirectory</key>
+	<string>{{HOME}}/Library/Application Support/BGMonitor/demo</string>
+
+	<!-- Only load this in a full GUI login session, not at the login
+	     window or in a background-only session. -->
+	<key>LimitLoadToSessionType</key>
+	<string>Aqua</string>
+
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>Nice</key>
+	<integer>5</integer>
+	<key>LowPriorityIO</key>
+	<true/>
+
+	<!-- Safety rails common on real agents: don't relaunch more than once
+	     every 30s even if something misbehaves, and don't let a hung
+	     process linger past a graceful shutdown request. -->
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>ExitTimeOut</key>
+	<integer>5</integer>
+
+	<key>AbandonProcessGroup</key>
+	<true/>
+</dict>
+</plist>

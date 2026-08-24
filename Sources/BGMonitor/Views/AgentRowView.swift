@@ -84,7 +84,7 @@ struct AgentRowView: View {
             Image(systemName: systemImage)
                 .frame(width: 16, height: 16)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.hoverable)
         .disabled(isDisabled)
         .help(help)
     }
@@ -105,7 +105,7 @@ struct AgentRowView: View {
                 .labelStyle(.iconOnly)
                 .foregroundStyle(item.isRegistered ? .green : .secondary)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HoverableButtonStyle(cornerRadius: 4, padding: 2))
         .disabled(item.label == nil)
         .help(
             item.label == nil
@@ -131,7 +131,7 @@ struct AgentRowView: View {
                 .labelStyle(.iconOnly)
                 .foregroundStyle(.secondary)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HoverableButtonStyle(cornerRadius: 4, padding: 2))
         .help("Schedule: \(item.schedule.summary) — click to view full details")
     }
 }

@@ -27,7 +27,11 @@ action buttons:
   diagnosing an agent that's registered but won't start
 
 Every row always renders the same set of buttons — disabled rather than
-hidden when inapplicable — so icons stay aligned down the whole list.
+hidden when inapplicable — so icons stay aligned down the whole list. All of
+the icon-only buttons (row actions, badges, footer) use a shared hover
+style (`HoverableButtonStyle`) that highlights on mouse-over, since a plain
+borderless/plain SwiftUI button otherwise gives no visual cue it's
+clickable until you actually click it.
 
 Scope is intentionally limited to LaunchAgents (not LaunchDaemons, and not
 Apple's `/System/Library/LaunchAgents`) so the whole app reads live state
@@ -64,5 +68,5 @@ on disk so BGMonitor lists it; use the app's own Register button to load it.
 - `Sources/BGMonitor/Models` — `LaunchAgentItem`, `Domain`, `GroupingKey`, `AgentSchedule`, `CalendarRule`
 - `Sources/BGMonitor/Services` — plist scanning, launchctl state reading, directory watching, log tailing (`LogTailer`), raw launchctl debug info, mutating launchctl actions (`LaunchctlActions`)
 - `Sources/BGMonitor/ViewModel` — `AgentListViewModel`, the single source of truth merging all of the above
-- `Sources/BGMonitor/Views` — the menubar UI, log-tail window, debug-info sheet, and schedule-detail sheet
+- `Sources/BGMonitor/Views` — the menubar UI, log-tail window, debug-info sheet, schedule-detail sheet, and the shared `HoverableButtonStyle`
 - `Demo/` — the example LaunchAgent (plist template, script, and `install.sh`)

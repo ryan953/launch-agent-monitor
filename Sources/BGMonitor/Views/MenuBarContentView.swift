@@ -115,12 +115,12 @@ struct MenuBarContentView: View {
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.hoverable)
 
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.hoverable)
         }
         .padding(10)
     }

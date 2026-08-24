@@ -3,20 +3,20 @@
 A native macOS menubar app that lists every LaunchAgent registered under
 `~/Library/LaunchAgents` (yours) and `/Library/LaunchAgents` (machine-wide),
 showing whether each one is registered with launchd and currently running.
-Group the list by running state, owner (User/Local), or registration status.
+Group the list by running state, owner (User/System), or registration status.
+The panel grows taller to fit the current list (capped to the screen's
+visible height) instead of staying a fixed size.
 
-Each row also shows its schedule at a glance (at load / every N / calendar /
-on demand / manual only, derived from `RunAtLoad`, `StartInterval`,
-`StartCalendarInterval`, `KeepAlive`, `WatchPaths`/`QueueDirectories`), and
-has buttons — each with a tooltip — to:
+Each row shows, left to right: owner (User/System), a registration badge
+that's also the register/unregister button (`launchctl bootstrap`/`bootout`
+— green when registered, click to toggle), a running indicator, and a
+schedule badge that's also the view-schedule button (click for full detail:
+calendar rules, keep-alive condition, watch paths). On the right, tooltipped
+action buttons:
 
-- **Register/Unregister** — `launchctl bootstrap`/`bootout`, loads or unloads
-  the agent from launchd
 - **Start/Stop** — `launchctl kickstart`/`kill SIGTERM`, disabled until the
   agent is registered (stopped agents may restart on their own if configured
   with `KeepAlive`)
-- **View schedule** — the full detail behind the schedule badge (calendar
-  rules, keep-alive condition, watch paths)
 - **View Log** — opens a live-tailing window over the agent's
   `StandardOutPath`/`StandardErrorPath`, disabled when neither is configured
 - **Debug** — raw `launchctl print`/`launchctl blame` output, useful for

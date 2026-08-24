@@ -51,7 +51,8 @@ struct MenuBarContentView: View {
 
             footer
         }
-        .frame(width: 480, height: 480)
+        .frame(width: 480)
+        .frame(maxHeight: .infinity)
         .task {
             await viewModel.refresh()
         }

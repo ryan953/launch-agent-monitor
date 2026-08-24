@@ -38,17 +38,6 @@ struct AgentRowView: View {
             Spacer()
 
             actionButton(
-                systemImage: item.isRegistered ? "tray.and.arrow.up.fill" : "tray.and.arrow.down.fill",
-                isDisabled: item.label == nil,
-                help: item.label == nil
-                    ? "Unavailable for unlabeled/invalid plists"
-                    : item.isRegistered
-                        ? "Unregister from launchd (launchctl bootout) — stops it and removes it from launchd until reloaded"
-                        : "Register with launchd (launchctl bootstrap) — loads this agent so it can run",
-                action: onToggleRegistration
-            )
-
-            actionButton(
                 systemImage: item.isRunning ? "stop.fill" : "play.fill",
                 isDisabled: item.label == nil || !item.isRegistered,
                 help: item.label == nil || !item.isRegistered
@@ -57,13 +46,6 @@ struct AgentRowView: View {
                         ? "Stop now (launchctl kill SIGTERM) — the agent may restart on its own if it's configured to KeepAlive"
                         : "Start now (launchctl kickstart) — runs it immediately without waiting for its schedule",
                 action: onToggleRunning
-            )
-
-            actionButton(
-                systemImage: "calendar",
-                isDisabled: false,
-                help: "View this agent's full schedule details",
-                action: onShowSchedule
             )
 
             actionButton(
@@ -108,11 +90,23 @@ struct AgentRowView: View {
             .background(.quaternary, in: Capsule())
     }
 
+    /// Doubles as the register/unregister action — no separate button for
+    /// it on the trailing side, to avoid showing the same state twice.
     private var registrationBadge: some View {
-        Label(item.isRegistered ? "Registered" : "Not Registered", systemImage: item.isRegistered ? "checkmark.circle.fill" : "circle.dashed")
-            .labelStyle(.iconOnly)
-            .foregroundStyle(item.isRegistered ? .green : .secondary)
-            .help(item.isRegistered ? "Registered with launchd" : "Not registered with launchd")
+        Button(action: onToggleRegistration) {
+            Label(item.isRegistered ? "Registered" : "Not Registered", systemImage: item.isRegistered ? "checkmark.circle.fill" : "circle.dashed")
+                .labelStyle(.iconOnly)
+                .foregroundStyle(item.isRegistered ? .green : .secondary)
+        }
+        .buttonStyle(.plain)
+        .disabled(item.label == nil)
+        .help(
+            item.label == nil
+                ? "Unavailable for unlabeled/invalid plists"
+                : item.isRegistered
+                    ? "Registered with launchd — click to unregister (launchctl bootout)"
+                    : "Not registered with launchd — click to register (launchctl bootstrap)"
+        )
     }
 
     private var runningBadge: some View {
@@ -122,10 +116,15 @@ struct AgentRowView: View {
             .help(item.isRunning ? "Running (pid \(item.pid.map(String.init) ?? "?"))" : "Not running")
     }
 
+    /// Doubles as the view-schedule action — no separate button for it on
+    /// the trailing side, to avoid showing the same state twice.
     private var scheduleBadge: some View {
-        Label(item.schedule.summary, systemImage: item.schedule.systemImage)
-            .labelStyle(.iconOnly)
-            .foregroundStyle(.secondary)
-            .help("Schedule: \(item.schedule.summary)")
+        Button(action: onShowSchedule) {
+            Label(item.schedule.summary, systemImage: item.schedule.systemImage)
+                .labelStyle(.iconOnly)
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .help("Schedule: \(item.schedule.summary) — click to view full details")
     }
 }

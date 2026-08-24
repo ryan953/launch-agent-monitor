@@ -7,7 +7,7 @@ enum Domain: String, CaseIterable, Codable, Sendable {
     var displayName: String {
         switch self {
         case .user: return "User"
-        case .local: return "Local"
+        case .local: return "System"
         }
     }
 

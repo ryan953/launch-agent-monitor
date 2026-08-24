@@ -29,10 +29,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: MenuPanel!
     private var outsideClickMonitor: Any?
 
+    private static let panelWidth: CGFloat = 480
+    private static let minPanelHeight: CGFloat = 240
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         setUpStatusItem()
         setUpPanel()
+        observeListChanges()
     }
 
     private func setUpStatusItem() {
@@ -53,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .overlay(shape.strokeBorder(.separator, lineWidth: 0.5))
 
         let newPanel = MenuPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 480),
+            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.minPanelHeight),
             styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -77,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openPanel() {
-        positionPanel()
+        updatePanelFrame(animate: false)
         panel.makeKeyAndOrderFront(nil)
         startMonitoringOutsideClicks()
     }
@@ -87,13 +91,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stopMonitoringOutsideClicks()
     }
 
-    private func positionPanel() {
+    /// Re-registers itself after every fire, since `withObservationTracking`
+    /// only fires once per registration — so the panel keeps resizing to
+    /// match the list for as long as the app runs, not just the first time
+    /// the item count changes.
+    private func observeListChanges() {
+        withObservationTracking {
+            _ = viewModel.items.count
+            _ = viewModel.groupingKey
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                if self.panel.isVisible {
+                    self.updatePanelFrame(animate: true)
+                }
+                self.observeListChanges()
+            }
+        }
+    }
+
+    /// Sizes the panel to fit the current list (more items/sections = a
+    /// taller panel), capped to the screen's visible height, and keeps it
+    /// anchored just below the status item as it grows downward.
+    private func updatePanelFrame(animate: Bool) {
         guard let button = statusItem.button, let buttonWindow = button.window else { return }
         let buttonFrame = buttonWindow.convertToScreen(button.frame)
+
         var frame = panel.frame
+        frame.size.width = Self.panelWidth
+        frame.size.height = idealPanelHeight()
         frame.origin.x = buttonFrame.midX - frame.width / 2
         frame.origin.y = buttonFrame.minY - frame.height - 4
-        panel.setFrame(frame, display: false)
+        panel.setFrame(frame, display: true, animate: animate)
+    }
+
+    private func idealPanelHeight() -> CGFloat {
+        let chrome: CGFloat = 100      // header + footer + dividers/padding
+        let rowHeight: CGFloat = 52
+        let sectionHeaderHeight: CGFloat = 24
+
+        let natural = chrome
+            + sectionHeaderHeight * CGFloat(viewModel.groupedSections.count)
+            + rowHeight * CGFloat(viewModel.items.count)
+
+        let screenMax = (NSScreen.main?.visibleFrame.height ?? 900) - 40
+        return min(max(natural, Self.minPanelHeight), screenMax)
     }
 
     private func startMonitoringOutsideClicks() {
@@ -114,8 +156,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// A borderless, non-activating panel that can still become key so text
-/// fields inside it (e.g. the status-command editor) work normally.
+/// A borderless, non-activating panel that can still become key so
+/// controls inside it work normally.
 final class MenuPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }

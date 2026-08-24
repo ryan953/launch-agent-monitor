@@ -46,8 +46,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setUpPanel() {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         let contentView = MenuBarContentView(viewModel: viewModel)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(.regularMaterial, in: shape)
+            .clipShape(shape)
+            .overlay(shape.strokeBorder(.separator, lineWidth: 0.5))
 
         let newPanel = MenuPanel(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 480),

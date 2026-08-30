@@ -37,6 +37,23 @@ Scope is intentionally limited to LaunchAgents (not LaunchDaemons, and not
 Apple's `/System/Library/LaunchAgents`) so the whole app reads live state
 via `launchctl print gui/<uid>/<label>` without ever needing sudo/root.
 
+## Installing
+
+```sh
+export HOMEBREW_GITHUB_API_TOKEN=<a token that can read this repo>
+brew install --cask --no-quarantine ryan953/tap/bg-monitor
+```
+
+The token is needed because this repository is private, so the plain release
+download URL answers 404 and the cask fetches through the GitHub API instead.
+`--no-quarantine` is needed because the app is ad-hoc signed but not notarized.
+Without it, Gatekeeper refuses to open the app and you have to clear the flag by
+hand with `xattr -dr com.apple.quarantine /Applications/BGMonitor.app`.
+
+To install without Homebrew, take the `.zip` from any
+[release](https://github.com/ryan953/launch-agent-monitor/releases) and unpack
+`BGMonitor.app` into `/Applications`.
+
 ## Running
 
 Requires Xcode 15+ / Swift 6 toolchain on macOS 14+.
@@ -62,6 +79,32 @@ Demo/install.sh
 
 It's left **unregistered** on purpose — installing just makes the file exist
 on disk so BGMonitor lists it; use the app's own Register button to load it.
+
+## Releasing
+
+Releases are cut on demand, never by pushing to `main`: **Actions → Release →
+Run workflow**, then give it a version such as `v0.1.0` (a bare `0.1.0` works
+too — the leading `v` is normalised on either spelling).
+
+The workflow builds one slice per architecture and `lipo`s them into a universal
+binary, wraps it in an ad-hoc signed `BGMonitor.app`, and attaches two assets to
+a new GitHub release: the `.app` in a `.zip`, and the bare executable. Only the
+zip carries the version in its name, and that matters — the tap picks the one
+asset whose name contains the version, so the bare executable has to stay
+unversioned.
+
+It then bumps the `bg-monitor` cask in
+[ryan953/homebrew-tap](https://github.com/ryan953/homebrew-tap) by running that
+tap's own `scripts/bump-cask.sh`, so the release and the cask cannot drift.
+
+That last step needs a `TAP_TOKEN` repository secret, because the built-in
+`GITHUB_TOKEN` only reaches this repository. It must be a PAT with **Contents:
+Read and write** on `ryan953/homebrew-tap` and **Contents: Read** here (the bump
+script downloads the freshly released asset to checksum it); a classic token
+with `repo` covers both. Without the secret the release is still created and
+only the cask bump is skipped, with a note in the run summary telling you the
+command to run by hand. Untick **Bump the bg-monitor cask** to skip it
+deliberately.
 
 ## Layout
 

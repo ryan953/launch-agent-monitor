@@ -1,0 +1,171 @@
+name: Release
+
+# On-demand only — never triggered by pushes to main.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v0.1.0 or 0.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark the release as a pre-release'
+        required: false
+        type: boolean
+        default: false
+      update_tap:
+        description: 'Bump the bg-monitor cask in ryan953/homebrew-tap'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      # Settle on both spellings of the version once, so the tag, the
+      # Info.plist and the tap bump can never disagree about the leading "v".
+      - name: Resolve version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          SHORT="${INPUT_VERSION#v}"
+          if [[ ! "$SHORT" =~ ^[0-9]+(\.[0-9]+)*([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "version must look like 0.1.0 or v0.1.0, got '$INPUT_VERSION'" >&2
+            exit 1
+          fi
+          echo "VERSION=v${SHORT}" >> "$GITHUB_ENV"
+          echo "SHORT_VERSION=${SHORT}" >> "$GITHUB_ENV"
+
+      # Built one slice per arch and lipo'd together rather than
+      # `swift build --arch arm64 --arch x86_64`, which routes through
+      # xcbuild and needs a full Xcode install.
+      - name: Build universal binary
+        run: |
+          set -euo pipefail
+          swift build -c release --triple arm64-apple-macosx14.0
+          swift build -c release --triple x86_64-apple-macosx14.0
+          mkdir -p dist
+          lipo -create -output dist/BGMonitor \
+            .build/arm64-apple-macosx/release/BGMonitor \
+            .build/x86_64-apple-macosx/release/BGMonitor
+          lipo -info dist/BGMonitor
+
+      - name: Package BGMonitor.app
+        run: |
+          set -euo pipefail
+          APP="dist/BGMonitor.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp dist/BGMonitor "$APP/Contents/MacOS/BGMonitor"
+          cat > "$APP/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key><string>BGMonitor</string>
+            <key>CFBundleDisplayName</key><string>BG Monitor</string>
+            <key>CFBundleIdentifier</key><string>com.ryan953.bgmonitor</string>
+            <key>CFBundleExecutable</key><string>BGMonitor</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>${SHORT_VERSION}</string>
+            <key>CFBundleVersion</key><string>${SHORT_VERSION}</string>
+            <key>LSMinimumSystemVersion</key><string>14.0</string>
+            <key>LSUIElement</key><true/>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          plutil -lint "$APP/Contents/Info.plist"
+          # Ad-hoc signature: unsigned/unnotarized either way, but this keeps
+          # the bundle from being rejected outright on Apple Silicon.
+          codesign --force --sign - "$APP"
+          ditto -c -k --keepParent "$APP" "dist/BGMonitor-${VERSION}-macos-universal.zip"
+
+      # Two assets, and only the zip carries the version in its name. That is
+      # load-bearing: the tap's scripts/pick_release_asset.py picks the single
+      # asset whose name contains the version, so the bare executable must stay
+      # unversioned or the bump below fails with "expected one asset, found 2".
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          NOTES=$(cat <<'MD'
+          Universal (Apple Silicon + Intel) build of BG Monitor, macOS 14+.
+
+          ### Install with Homebrew
+
+          ```sh
+          export HOMEBREW_GITHUB_API_TOKEN=<a token that can read this repo>
+          brew install --cask --no-quarantine ryan953/tap/bg-monitor
+          ```
+
+          The token is needed because this repository is private, and
+          `--no-quarantine` because the app is ad-hoc signed but not notarized.
+
+          ### Install by hand
+
+          - `BGMonitor-__VERSION__-macos-universal.zip` — the `BGMonitor.app` bundle; unzip into `/Applications` and launch it.
+          - `BGMonitor` — the bare universal executable, for running straight from a terminal.
+
+          First launch needs right-click → Open, or
+          `xattr -dr com.apple.quarantine BGMonitor.app`.
+          MD
+          )
+          NOTES="${NOTES//__VERSION__/$VERSION}"
+          gh release create "$VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "$VERSION" \
+            --notes "$NOTES" \
+            --prerelease="$PRERELEASE" \
+            "dist/BGMonitor-${VERSION}-macos-universal.zip" \
+            "dist/BGMonitor"
+
+      # github.token is scoped to this repository, so pushing to the tap needs a
+      # PAT in the TAP_TOKEN secret, with Contents: Read+Write on
+      # ryan953/homebrew-tap and Contents: Read here — the tap's bump script
+      # downloads this release's asset to checksum it. A classic token with
+      # `repo` covers both. With no token the release still stands; only the
+      # cask is left behind, and the summary says how to bump it by hand.
+      - name: Bump the Homebrew cask
+        if: ${{ inputs.update_tap }}
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TAP_TOKEN}" ]; then
+            echo "::warning::TAP_TOKEN is not set — leaving ryan953/homebrew-tap alone."
+            {
+              echo "### Homebrew tap not updated"
+              echo
+              echo "\`TAP_TOKEN\` is not set. Bump the cask by hand:"
+              echo
+              echo '```sh'
+              echo "scripts/bump-cask.sh bg-monitor ${SHORT_VERSION}"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git clone --depth 1 \
+            "https://x-access-token:${TAP_TOKEN}@github.com/ryan953/homebrew-tap.git" tap
+          cd tap
+          # The tap owns the bump logic (look up the release, find its asset,
+          # rewrite version + asset ID + sha256). Reuse it rather than keeping a
+          # second copy of that knowledge here.
+          HOMEBREW_GITHUB_API_TOKEN="${TAP_TOKEN}" \
+            scripts/bump-cask.sh bg-monitor "${SHORT_VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "bg-monitor ${SHORT_VERSION}"
+          git push
+          echo "Bumped ryan953/tap/bg-monitor to ${SHORT_VERSION}" >> "$GITHUB_STEP_SUMMARY"

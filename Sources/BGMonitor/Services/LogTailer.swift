@@ -29,8 +29,14 @@ actor LogTailer {
 
     private func attach(_ continuation: AsyncStream<String>.Continuation) {
         self.continuation = continuation
+        // Bind self strongly before starting the Task. Swift 6.1 rejects a
+        // Task closure that captures the weak optional directly: the optional
+        // is a mutable capture, so passing the closure as a `sending`
+        // parameter is a data race. Newer compilers accept it, which is why
+        // this only fails on the macos-15 runner and not on a 6.3 desktop.
         continuation.onTermination = { [weak self] _ in
-            Task { await self?.stop() }
+            guard let self else { return }
+            Task { await self.stop() }
         }
         openAndWatch(fromScratch: true)
     }
@@ -82,7 +88,8 @@ actor LogTailer {
         )
         newSource.setEventHandler { [weak self] in
             let rawFlags = newSource.data.rawValue
-            Task { await self?.handleEvent(flags: DispatchSource.FileSystemEvent(rawValue: rawFlags)) }
+            guard let self else { return }
+            Task { await self.handleEvent(flags: DispatchSource.FileSystemEvent(rawValue: rawFlags)) }
         }
         newSource.setCancelHandler { [fd = newFD] in
             close(fd)

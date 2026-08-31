@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Raw `launchctl print` / `launchctl blame` output for one agent, shown
 /// verbatim — useful for diagnosing an agent that's registered but won't

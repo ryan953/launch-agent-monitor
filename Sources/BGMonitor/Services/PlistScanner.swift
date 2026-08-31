@@ -12,15 +12,18 @@ enum PlistScanner {
         let directoryURL = domain.directoryURL
         let fileManager = FileManager.default
 
-        guard let entries = try? fileManager.contentsOfDirectory(
-            at: directoryURL,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) else {
+        guard
+            let entries = try? fileManager.contentsOfDirectory(
+                at: directoryURL,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+        else {
             return []
         }
 
-        return entries
+        return
+            entries
             .filter { $0.pathExtension.lowercased() == "plist" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
             .map { parse(plistURL: $0, domain: domain) }

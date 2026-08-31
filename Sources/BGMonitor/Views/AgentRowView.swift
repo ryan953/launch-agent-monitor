@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct AgentRowView: View {
     let item: LaunchAgentItem
@@ -69,7 +69,8 @@ struct AgentRowView: View {
             actionButton(
                 systemImage: "stethoscope",
                 isDisabled: item.label == nil,
-                help: item.label == nil ? "Unavailable for unlabeled/invalid plists" : "Show launchctl print/blame output",
+                help: item.label == nil
+                    ? "Unavailable for unlabeled/invalid plists" : "Show launchctl print/blame output",
                 action: onShowDebugInfo
             )
         }
@@ -79,7 +80,9 @@ struct AgentRowView: View {
     /// Every row renders the same fixed set of action buttons — only
     /// `.disabled`, never conditionally omitted — so icons line up across
     /// every row regardless of that row's state.
-    private func actionButton(systemImage: String, isDisabled: Bool, help: String, action: @escaping () -> Void) -> some View {
+    private func actionButton(systemImage: String, isDisabled: Bool, help: String, action: @escaping () -> Void)
+        -> some View
+    {
         Button(action: action) {
             Image(systemName: systemImage)
                 .frame(width: 16, height: 16)
@@ -101,9 +104,12 @@ struct AgentRowView: View {
     /// it on the trailing side, to avoid showing the same state twice.
     private var registrationBadge: some View {
         Button(action: onToggleRegistration) {
-            Label(item.isRegistered ? "Registered" : "Not Registered", systemImage: item.isRegistered ? "checkmark.circle.fill" : "circle.dashed")
-                .labelStyle(.iconOnly)
-                .foregroundStyle(item.isRegistered ? .green : .secondary)
+            Label(
+                item.isRegistered ? "Registered" : "Not Registered",
+                systemImage: item.isRegistered ? "checkmark.circle.fill" : "circle.dashed"
+            )
+            .labelStyle(.iconOnly)
+            .foregroundStyle(item.isRegistered ? .green : .secondary)
         }
         .buttonStyle(HoverableButtonStyle(cornerRadius: 4, padding: 2))
         .disabled(item.label == nil)
@@ -117,10 +123,13 @@ struct AgentRowView: View {
     }
 
     private var runningBadge: some View {
-        Label(item.isRunning ? "Running" : "Not Running", systemImage: item.isRunning ? "play.circle.fill" : "pause.circle")
-            .labelStyle(.iconOnly)
-            .foregroundStyle(item.isRunning ? .blue : .secondary)
-            .help(item.isRunning ? "Running (pid \(item.pid.map(String.init) ?? "?"))" : "Not running")
+        Label(
+            item.isRunning ? "Running" : "Not Running",
+            systemImage: item.isRunning ? "play.circle.fill" : "pause.circle"
+        )
+        .labelStyle(.iconOnly)
+        .foregroundStyle(item.isRunning ? .blue : .secondary)
+        .help(item.isRunning ? "Running (pid \(item.pid.map(String.init) ?? "?"))" : "Not running")
     }
 
     /// Doubles as the view-schedule action — no separate button for it on

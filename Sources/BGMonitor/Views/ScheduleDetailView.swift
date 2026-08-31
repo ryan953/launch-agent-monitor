@@ -59,8 +59,10 @@ struct ScheduleDetailView: View {
                     }
 
                     if item.schedule.summary == AgentSchedule.manual.summary {
-                        Text("No load-time, interval, calendar, or on-demand trigger is configured — this agent only runs when started manually.")
-                            .foregroundStyle(.secondary)
+                        Text(
+                            "No load-time, interval, calendar, or on-demand trigger is configured — this agent only runs when started manually."
+                        )
+                        .foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

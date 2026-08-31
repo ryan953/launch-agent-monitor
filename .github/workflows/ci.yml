@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      # Config in .swift-format; the toolchain ships the formatter, so there is
+      # nothing to install or pin.
+      - name: Lint
+        run: swift format lint --recursive --strict Sources
+
+      - name: Build
+        run: swift build -c release
+
+      # No test target yet, so the check is that what the release does still
+      # works: a toolchain or triple problem shows up here, not mid-release.
+      - name: Build both slices and lipo them
+        run: |
+          set -euo pipefail
+          swift build -c release --triple arm64-apple-macosx14.0
+          swift build -c release --triple x86_64-apple-macosx14.0
+          mkdir -p dist
+          lipo -create -output dist/BGMonitor \
+            .build/arm64-apple-macosx/release/BGMonitor \
+            .build/x86_64-apple-macosx/release/BGMonitor
+          lipo -info dist/BGMonitor

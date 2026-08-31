@@ -29,8 +29,11 @@ actor LogTailer {
 
     private func attach(_ continuation: AsyncStream<String>.Continuation) {
         self.continuation = continuation
+        // Bound strongly first because Swift 6.1 treats a Task closure that
+        // captures the weak optional as a `sending` data race.
         continuation.onTermination = { [weak self] _ in
-            Task { await self?.stop() }
+            guard let self else { return }
+            Task { await self.stop() }
         }
         openAndWatch(fromScratch: true)
     }
@@ -82,7 +85,8 @@ actor LogTailer {
         )
         newSource.setEventHandler { [weak self] in
             let rawFlags = newSource.data.rawValue
-            Task { await self?.handleEvent(flags: DispatchSource.FileSystemEvent(rawValue: rawFlags)) }
+            guard let self else { return }
+            Task { await self.handleEvent(flags: DispatchSource.FileSystemEvent(rawValue: rawFlags)) }
         }
         newSource.setCancelHandler { [fd = newFD] in
             close(fd)

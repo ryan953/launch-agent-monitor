@@ -47,7 +47,8 @@ enum LaunchctlActions {
         do {
             try process.run()
         } catch {
-            return .failure(LaunchctlActionError(commandLine: commandLine, exitCode: -1, output: error.localizedDescription))
+            return .failure(
+                LaunchctlActionError(commandLine: commandLine, exitCode: -1, output: error.localizedDescription))
         }
 
         let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
@@ -57,7 +58,9 @@ enum LaunchctlActions {
         guard process.terminationStatus == 0 else {
             let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
             let stderr = String(data: stderrData, encoding: .utf8) ?? ""
-            return .failure(LaunchctlActionError(commandLine: commandLine, exitCode: process.terminationStatus, output: stdout + stderr))
+            return .failure(
+                LaunchctlActionError(
+                    commandLine: commandLine, exitCode: process.terminationStatus, output: stdout + stderr))
         }
 
         return .success(())

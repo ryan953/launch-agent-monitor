@@ -135,20 +135,10 @@ jobs:
             "dist/BGMonitor-${VERSION}-macos-universal.zip" \
             "dist/BGMonitor"
 
-  # The tap owns the bump logic (look up the release, find its asset, rewrite
-  # version + asset ID + sha256). This used to be an inline step here with its
-  # own clone-and-commit; calling the tap's reusable workflow instead means
-  # tasks-ui, repo-metrics and this repository all bump the same way.
-  #
-  # This hangs off the release job rather than listening for
-  # `release: published`, because the release above is created with
-  # github.token, and GitHub does not fire workflow-triggering events for
-  # anything a GITHUB_TOKEN did. That trigger would simply never run.
-  #
-  # Needs a TAP_TOKEN secret: Contents Read+Write on ryan953/homebrew-tap, and
-  # Contents Read here, because the bump downloads this release's asset to
-  # checksum it. Without it this job fails and says so; the release still
-  # stands, and `scripts/bump-cask.sh bg-monitor <version>` fixes it by hand.
+  # Hangs off the release job, not `release: published`: that event never
+  # fires, because GitHub suppresses workflow triggers for anything a
+  # GITHUB_TOKEN did, and the release above is created with github.token.
+  # Needs a TAP_TOKEN secret; without it this job fails and the release stands.
   tap:
     needs: release
     if: ${{ inputs.update_tap }}

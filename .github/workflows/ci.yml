@@ -22,10 +22,8 @@ jobs:
       - name: Build
         run: swift build -c release
 
-      # There is no test target yet, so the useful check is that the thing the
-      # release workflow does still works. Both slices and the lipo are built
-      # the same way there; a toolchain or triple problem shows up here rather
-      # than half way through cutting a release.
+      # No test target yet, so the check is that what the release does still
+      # works: a toolchain or triple problem shows up here, not mid-release.
       - name: Build both slices and lipo them
         run: |
           set -euo pipefail

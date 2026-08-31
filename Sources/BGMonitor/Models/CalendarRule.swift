@@ -10,10 +10,12 @@ struct CalendarRule: Equatable, Sendable {
     var weekday: Int?
     var month: Int?
 
-    private static let weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    private static let weekdayNames = [
+        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+    ]
     private static let monthNames = [
         "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
+        "July", "August", "September", "October", "November", "December",
     ]
 
     var summary: String {

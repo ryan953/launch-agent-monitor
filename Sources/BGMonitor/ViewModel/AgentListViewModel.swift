@@ -71,7 +71,9 @@ final class AgentListViewModel {
         await performAction(name: "Stop") { LaunchctlActions.stop(label: label) }
     }
 
-    private func performAction(name: String, _ action: @escaping @Sendable () -> Result<Void, LaunchctlActionError>) async {
+    private func performAction(name: String, _ action: @escaping @Sendable () -> Result<Void, LaunchctlActionError>)
+        async
+    {
         let result = await Task.detached(priority: .userInitiated, operation: action).value
         if case .failure(let error) = result {
             lastActionError = "\(name) failed: \(error.localizedDescription)"

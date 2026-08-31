@@ -26,6 +26,6 @@ final class DirectoryWatcher {
     }
 
     deinit {
-        sources.forEach { $0.cancel() }
+        for source in sources { source.cancel() }
     }
 }

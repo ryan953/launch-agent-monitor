@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 @main
 struct BGMonitorApp: App {
@@ -126,11 +126,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func idealPanelHeight() -> CGFloat {
-        let chrome: CGFloat = 100      // header + footer + dividers/padding
+        let chrome: CGFloat = 100  // header + footer + dividers/padding
         let rowHeight: CGFloat = 52
         let sectionHeaderHeight: CGFloat = 24
 
-        let natural = chrome
+        let natural =
+            chrome
             + sectionHeaderHeight * CGFloat(viewModel.groupedSections.count)
             + rowHeight * CGFloat(viewModel.items.count)
 
@@ -143,7 +144,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // applications — clicks inside any of our own windows (the panel,
         // a log-tail window, a sheet) never reach it, so the panel stays
         // open through all of those.
-        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) {
+            [weak self] _ in
             self?.closePanel()
         }
     }

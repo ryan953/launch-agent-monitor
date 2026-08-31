@@ -22,7 +22,7 @@ enum LaunchctlStateReader {
 
         let outputPipe = Pipe()
         process.standardOutput = outputPipe
-        process.standardError = Pipe() // discard stderr, we only care about exit status + stdout
+        process.standardError = Pipe()  // discard stderr, we only care about exit status + stdout
 
         do {
             try process.run()

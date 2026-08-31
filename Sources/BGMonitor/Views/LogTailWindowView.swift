@@ -114,7 +114,8 @@ struct LogTailWindowView: View {
             ContentUnavailableView(
                 "No Log File Configured",
                 systemImage: "doc.text.magnifyingglass",
-                description: Text("launchd is not capturing this agent's output (no StandardOutPath/StandardErrorPath in its plist).")
+                description: Text(
+                    "launchd is not capturing this agent's output (no StandardOutPath/StandardErrorPath in its plist).")
             )
         } else {
             logContent

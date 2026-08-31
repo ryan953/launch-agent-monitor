@@ -29,8 +29,8 @@ actor LogTailer {
 
     private func attach(_ continuation: AsyncStream<String>.Continuation) {
         self.continuation = continuation
-        // Bind self strongly first: Swift 6.1 (the macos-15 runner) rejects a
-        // Task closure capturing the weak optional as a `sending` data race.
+        // Bound strongly first because Swift 6.1 treats a Task closure that
+        // captures the weak optional as a `sending` data race.
         continuation.onTermination = { [weak self] _ in
             guard let self else { return }
             Task { await self.stop() }

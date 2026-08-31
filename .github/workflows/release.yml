@@ -94,10 +94,8 @@ jobs:
           codesign --force --sign - "$APP"
           ditto -c -k --keepParent "$APP" "dist/BGMonitor-${VERSION}-macos-universal.zip"
 
-      # Two assets, and only the zip carries the version in its name. That is
-      # load-bearing: the tap's scripts/pick_release_asset.py picks the single
-      # asset whose name contains the version, so the bare executable must stay
-      # unversioned or the bump below fails with "expected one asset, found 2".
+      # Two assets: the app bundle for /Applications, and the bare universal
+      # executable for running straight from a terminal.
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -107,26 +105,24 @@ jobs:
           NOTES=$(cat <<'MD'
           Universal (Apple Silicon + Intel) build of BG Monitor, macOS 14+.
 
-          ### Install with Homebrew
+          ## Install
 
           ```sh
-          export HOMEBREW_GITHUB_API_TOKEN=<a token that can read this repo>
-          brew install --cask --no-quarantine ryan953/tap/bg-monitor
+          brew install --cask ryan953/tap/bg-monitor
           ```
 
-          The token is needed because this repository is private, and
-          `--no-quarantine` because the app is ad-hoc signed but not notarized.
+          Or download the zip below, unzip it, and drag **BGMonitor.app** to
+          `/Applications`. `BGMonitor` is the bare universal executable, for
+          running straight from a terminal.
 
-          ### Install by hand
+          The build is ad-hoc signed rather than notarized, so the first launch
+          needs **right-click → Open** (once), or:
 
-          - `BGMonitor-__VERSION__-macos-universal.zip` — the `BGMonitor.app` bundle; unzip into `/Applications` and launch it.
-          - `BGMonitor` — the bare universal executable, for running straight from a terminal.
-
-          First launch needs right-click → Open, or
-          `xattr -dr com.apple.quarantine BGMonitor.app`.
+          ```sh
+          xattr -dr com.apple.quarantine "/Applications/BGMonitor.app"
+          ```
           MD
           )
-          NOTES="${NOTES//__VERSION__/$VERSION}"
           gh release create "$VERSION" \
             --target "$GITHUB_SHA" \
             --title "$VERSION" \

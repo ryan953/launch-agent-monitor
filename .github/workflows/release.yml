@@ -25,6 +25,8 @@ permissions:
 jobs:
   release:
     runs-on: macos-15
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +36,7 @@ jobs:
       # Settle on both spellings of the version once, so the tag, the
       # Info.plist and the tap bump can never disagree about the leading "v".
       - name: Resolve version
+        id: version
         env:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
@@ -45,6 +48,7 @@ jobs:
           fi
           echo "VERSION=v${SHORT}" >> "$GITHUB_ENV"
           echo "SHORT_VERSION=${SHORT}" >> "$GITHUB_ENV"
+          echo "tag=v${SHORT}" >> "$GITHUB_OUTPUT"
 
       # Built one slice per arch and lipo'd together rather than
       # `swift build --arch arm64 --arch x86_64`, which routes through
@@ -131,41 +135,27 @@ jobs:
             "dist/BGMonitor-${VERSION}-macos-universal.zip" \
             "dist/BGMonitor"
 
-      # github.token is scoped to this repository, so pushing to the tap needs a
-      # PAT in the TAP_TOKEN secret, with Contents: Read+Write on
-      # ryan953/homebrew-tap and Contents: Read here — the tap's bump script
-      # downloads this release's asset to checksum it. A classic token with
-      # `repo` covers both. With no token the release still stands; only the
-      # cask is left behind, and the summary says how to bump it by hand.
-      - name: Bump the Homebrew cask
-        if: ${{ inputs.update_tap }}
-        env:
-          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "${TAP_TOKEN}" ]; then
-            echo "::warning::TAP_TOKEN is not set — leaving ryan953/homebrew-tap alone."
-            {
-              echo "### Homebrew tap not updated"
-              echo
-              echo "\`TAP_TOKEN\` is not set. Bump the cask by hand:"
-              echo
-              echo '```sh'
-              echo "scripts/bump-cask.sh bg-monitor ${SHORT_VERSION}"
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          git clone --depth 1 \
-            "https://x-access-token:${TAP_TOKEN}@github.com/ryan953/homebrew-tap.git" tap
-          cd tap
-          # The tap owns the bump logic (look up the release, find its asset,
-          # rewrite version + asset ID + sha256). Reuse it rather than keeping a
-          # second copy of that knowledge here.
-          HOMEBREW_GITHUB_API_TOKEN="${TAP_TOKEN}" \
-            scripts/bump-cask.sh bg-monitor "${SHORT_VERSION}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "bg-monitor ${SHORT_VERSION}"
-          git push
-          echo "Bumped ryan953/tap/bg-monitor to ${SHORT_VERSION}" >> "$GITHUB_STEP_SUMMARY"
+  # The tap owns the bump logic (look up the release, find its asset, rewrite
+  # version + asset ID + sha256). This used to be an inline step here with its
+  # own clone-and-commit; calling the tap's reusable workflow instead means
+  # tasks-ui, repo-metrics and this repository all bump the same way.
+  #
+  # This hangs off the release job rather than listening for
+  # `release: published`, because the release above is created with
+  # github.token, and GitHub does not fire workflow-triggering events for
+  # anything a GITHUB_TOKEN did. That trigger would simply never run.
+  #
+  # Needs a TAP_TOKEN secret: Contents Read+Write on ryan953/homebrew-tap, and
+  # Contents Read here, because the bump downloads this release's asset to
+  # checksum it. Without it this job fails and says so; the release still
+  # stands, and `scripts/bump-cask.sh bg-monitor <version>` fixes it by hand.
+  tap:
+    needs: release
+    if: ${{ inputs.update_tap }}
+    uses: ryan953/homebrew-tap/.github/workflows/bump.yml@main
+    with:
+      kind: cask
+      name: bg-monitor
+      version: ${{ needs.release.outputs.tag }}
+    secrets:
+      TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
